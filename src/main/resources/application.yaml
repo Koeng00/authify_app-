@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: authify
+
+  datasource:
+    url: jdbc:mysql://127.0.0.1:${MYSQL_PORT}/${MYSQL_DATABASE}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
