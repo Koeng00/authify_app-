@@ -8,13 +8,13 @@ import java.util.UUID;
 
 public class UserMapper {
 
-    public static UserEntity toEntity(ProfileRequest request)
+    public static UserEntity toEntity(ProfileRequest request, String password)
     {
         return UserEntity.builder()
                 .email(request.email())
                 .userId(UUID.randomUUID().toString())
                 .name(request.name())
-                .password(request.password())
+                .password(password)
                 .isAccountVerified(false)
                 .resetOtpExpireAt(0L)
                 .verifyOtp(null)

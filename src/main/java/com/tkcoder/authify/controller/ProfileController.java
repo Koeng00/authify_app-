@@ -7,17 +7,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("/api/v1.0")
 @RestController
 @RequiredArgsConstructor
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/register")
     public ResponseEntity<ProfileResponse> save(@Valid @RequestBody ProfileRequest request)
@@ -25,4 +23,6 @@ public class ProfileController {
         ProfileResponse response = profileService.createProfile(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    // 1:28:59
 }
