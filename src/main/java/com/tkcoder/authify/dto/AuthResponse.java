@@ -1,10 +1,10 @@
-package com.tkcoder.authify.dto.auths;
+package com.tkcoder.authify.dto;
 
 import lombok.Builder;
 
 @Builder
 public record AuthResponse (
     String email,
-    String token
+    String access_token
 ){
 }
