@@ -1,7 +1,7 @@
 package com.tkcoder.authify.mapper.users;
 
-import com.tkcoder.authify.dto.users.ProfileRequest;
-import com.tkcoder.authify.dto.users.ProfileResponse;
+import com.tkcoder.authify.dto.ProfileRequest;
+import com.tkcoder.authify.dto.ProfileResponse;
 import com.tkcoder.authify.entity.UserEntity;
 
 import java.util.UUID;
@@ -26,10 +26,10 @@ public class UserMapper {
     public static ProfileResponse toResponse(UserEntity profile)
     {
         return ProfileResponse.builder()
-                .userId(profile.getUserId())
+                .user_uuid(profile.getUserId())
                 .email(profile.getEmail())
                 .name(profile.getName())
-                .isAccountVerified(profile.getIsAccountVerified())
+                .is_account_verified(profile.getIsAccountVerified())
                 .build();
     }
 

@@ -1,5 +1,6 @@
 package com.tkcoder.authify.repository;
 
+import com.tkcoder.authify.dto.ProfileResponse;
 import com.tkcoder.authify.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -12,5 +13,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     Optional<UserEntity> findByEmail(String email);
     boolean existsByEmail(String email);
+
+    Optional<List<ProfileResponse>> findAllByIsAccountVerified(Boolean isAccountVerified);
 }
 

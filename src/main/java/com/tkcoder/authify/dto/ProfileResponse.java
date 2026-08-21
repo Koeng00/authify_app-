@@ -1,12 +1,12 @@
-package com.tkcoder.authify.dto.users;
+package com.tkcoder.authify.dto;
 
 import lombok.Builder;
 
 @Builder
 public record ProfileResponse(
-        String userId,
+        String user_uuid,
         String name,
         String email,
-        Boolean isAccountVerified
+        Boolean is_account_verified
 ) {
 }

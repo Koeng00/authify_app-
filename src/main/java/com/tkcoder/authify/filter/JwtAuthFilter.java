@@ -3,6 +3,8 @@ package com.tkcoder.authify.filter;
 
 import com.tkcoder.authify.service.AppUserDetailsService;
 import com.tkcoder.authify.util.JwtUtil;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,19 +28,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final AppUserDetailsService appUserDetailsService;
     private final JwtUtil jwtUtil;
 
-    private static final List<String> PUBLIC_URL = List.of("/login", "/logout", "/sent-reset-otp", "/reset-password", "/register");
+    private static final List<String> PUBLIC_URL = List.of(
+            "/login",
+            "/logout",
+            "/refresh-token",
+            "/sent-reset-otp",
+            "/reset-password",
+            "/register");
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
         String path = request.getServletPath();
 
+        // public endpoint
         if (PUBLIC_URL.contains(path)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String jwt = null;
-        String email = null;
 
         //1. check the authorization header
         String authorizationHeader = request.getHeader("Authorization");
@@ -47,33 +59,80 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             jwt = authorizationHeader.substring(7);
         }
 
-        //2. If not found in header, check cookies, normally we do not set a token in cookie
-        if (jwt == null) {
-            Cookie[] cookies = request.getCookies();
-            if (cookies != null) {
-                for (Cookie cookie: cookies) {
-                    if ("jwt".equalsIgnoreCase(cookie.getName())) {
-                        jwt = cookie.getValue();
-                        break;
+        //2. Validate token type access and set security context
+        if (jwt != null) {
+
+            try {
+                String tokenType = jwtUtil.extractByType(jwt);
+                // Only ACCESS tokens are accepted here
+                if ("access".equals(tokenType)) {
+                    String email = jwtUtil.extractByEmail(jwt);
+
+                    if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                        UserDetails userDetails = appUserDetailsService.loadUserByUsername(email);
+
+                        if (jwtUtil.validateAccessToken(jwt, userDetails)) {
+                            UsernamePasswordAuthenticationToken authenticationToken =
+                                    new UsernamePasswordAuthenticationToken(
+                                            userDetails,
+                                            null,
+                                            userDetails.getAuthorities()
+                                    );
+
+                            authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                        }
                     }
                 }
+
+            } catch (ExpiredJwtException e) {
+
+                // Access token expired.
+                SecurityContextHolder.clearContext();
+
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("""
+                        {
+                            "error": true,
+                            "code": "TOKEN_EXPIRED",
+                            "message": "Access token has expired"
+                        }
+                        """);
+                return;
+            } catch (JwtException e) {
+
+                // Jwt is malformed, invalid, or has an invalid signature.
+                SecurityContextHolder.clearContext();
+
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("""
+                        {
+                            "error": true,
+                            "code": "INVALID_TOKEN",
+                            "message": "Invalid access token"
+                        }
+                        """);
+                return;
+            } catch (Exception e){
+                // Unexpected authentication error.
+                SecurityContextHolder.clearContext();
+
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("""
+                        {
+                            "error": true,
+                            "code": "AUTHENTICATION_ERROR",
+                            "message": "Authentication failed"
+                        }
+                        """);
+                return;
             }
         }
-
-        //3. Validate token and set security context
-        if (jwt != null) {
-            email = jwtUtil.extractByEmail(jwt);
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetail = appUserDetailsService.loadUserByUsername(email);
-                if (jwtUtil.validateToken(jwt, userDetail)) {
-                    UsernamePasswordAuthenticationToken authenticationToken =
-                            new UsernamePasswordAuthenticationToken(userDetail, null, userDetail.getAuthorities());
-                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                }
-            }
-        }
-
 
         filterChain.doFilter(request, response);
     }
